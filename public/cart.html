@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Your Cart - Simple E-Commerce</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="header">
+    <h2>Your Shopping Cart</h2>
+    <div>
+      <button onclick="goBack()">Back to Products</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div id="cartContainer" class="cart-container">
+    <!-- Cart items will be injected here -->
+  </div>
+
+  <div class="cart-summary">
+    <h3>Total: ₹<span id="totalAmount">0</span></h3>
+    <input type="text" id="addressInput" placeholder="Enter delivery address" required>
+    <button onclick="placeOrder()">Place Order</button>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:5000/api';
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      alert("You must login first!");
+      window.location.href = "index.html";
+    }
+
+    function goBack() {
+      window.location.href = 'index.html';
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = 'index.html';
+    }
+
+    async function fetchCart() {
+  try {
+    const res = await fetch(`${API_BASE}/cart`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Cart error response:", errorText);
+      throw new Error("API error: " + res.status);
+    }
+
+    const data = await res.json();
+    console.log("Fetched cart data:", data); // ✅ DEBUG HERE
+
+    // ... render cart items ...
+    
+  } catch (error) {
+    console.error('Error fetching cart:', error);
+    alert("Failed to load cart. Please check login or server.");
+  }
+}
+
+
+    async function removeItem(productId) {
+      try {
+        const res = await fetch(`${API_BASE}/cart/remove`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ productId }),
+        });
+
+        const data = await res.json();
+        alert(data.msg || 'Item removed!');
+        fetchCart();
+      } catch (error) {
+        console.error('Remove item error:', error);
+        alert("Error removing item.");
+      }
+    }
+
+    async function placeOrder() {
+      const address = document.getElementById('addressInput').value.trim();
+      if (!address) return alert("Please enter delivery address!");
+
+      try {
+        const res = await fetch(`${API_BASE}/orders/place`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ address }),
+        });
+
+        const data = await res.json();
+        alert(data.msg || 'Order placed successfully!');
+        window.location.href = 'index.html';
+      } catch (error) {
+        console.error('Order error:', error);
+        alert("Error placing order.");
+      }
+    }
+
+    // Load cart on page load
+    fetchCart();
+  </script>
+</body>
+</html>
